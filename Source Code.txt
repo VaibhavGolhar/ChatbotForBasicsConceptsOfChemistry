@@ -1,0 +1,764 @@
+﻿from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFrame, QLineEdit
+from PyQt5.QtCore import QRect, QPropertyAnimation
+from PyQt5.QtGui import QMovie
+import sys
+import re
+from sympy import Matrix, lcm
+import pubchempy as pcp
+from rdkit import Chem
+from rdkit.Chem import Draw
+from vs import main
+from vs.main import elements
+from vs import *
+
+
+
+
+
+
+
+
+class MyWindow(QMainWindow):
+   def __init__(self):
+       super(MyWindow, self).__init__()
+       self.setGeometry(0, 0, 1080, 720)
+       self.setWindowTitle('CatalystAI Chatbot')
+       self.setStyleSheet('background-color: white;')
+       self.initUI()
+      
+   def initUI(self):
+       self.label = QtWidgets.QLabel(self)
+       self.label.setStyleSheet('background-image: url(Starting_Image.png)')
+       self.label.setGeometry(260, 170, 560, 200)
+
+
+       self.b1 = QtWidgets.QPushButton(self, clicked=self.animation)
+       self.b1.setGeometry(425, 390, 250, 105)
+       self.b1.setStyleSheet('background-color: white; background-image: url(Start.png)')
+
+
+       self.intro = QtWidgets.QLabel(self)
+       self.intro.setText('Hi! I am CatalystAI! I can do the following things for you: ')
+       self.intro.setStyleSheet('QLabel { color: black; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.intro.setGeometry(10, 210, 0, 25)
+
+
+       self.option1 = QtWidgets.QPushButton(self, clicked=self.option01)
+       self.option1.setStyleSheet('background-image: url(Option1.png)')
+       self.option1.setGeometry(260, 300, 0, 0)
+
+
+       self.option2 = QtWidgets.QPushButton(self, clicked=self.option02)
+       self.option2.setStyleSheet('background-image: url(Option2.png)')
+       self.option2.setGeometry(260, 300, 0, 0)
+
+
+       self.option3 = QtWidgets.QPushButton(self, clicked = self.option03)
+       self.option3.setStyleSheet('background-image: url(option3.png)')
+       self.option3.setGeometry(260, 300, 0, 0)
+
+
+       self.option4 = QtWidgets.QPushButton(self, clicked = self.option04)
+       self.option4.setStyleSheet('background-image: url(option4.png)')
+       self.option4.setGeometry(260, 300, 0, 0)
+
+
+       self.option5 = QtWidgets.QPushButton(self, clicked = self.option05)
+       self.option5.setStyleSheet('background-image: url(option5.png)')
+       self.option5.setGeometry(260, 300, 0, 0)
+
+
+
+
+       self.cqbintro = QtWidgets.QLabel(self)
+       self.cqbintro.setText('CatalystAI : Please input your reactants (this is case sensitive)\n                        Your input should look like: H2O+Ag3(Fe3O)4')
+       self.cqbintro.setStyleSheet('QLabel { color: White; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.cqbintro.setGeometry(10, 10, 0, 25)
+
+
+       self.cqbintro2 = QtWidgets.QLabel(self)
+       self.cqbintro2.setText('CatalystAI : Please input your products (this is case sensitive)')
+       self.cqbintro2.setStyleSheet('QLabel { color: White; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.cqbintro2.setGeometry(10, 130, 0, 25)
+
+
+       self.struintro = QtWidgets.QLabel(self)
+       self.struintro.setText('CatalystAI : I can show the structure of the given compound.\n                        Enter the name of compound (e.g. Benzene)')
+       self.struintro.setStyleSheet('QLabel { color: White; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.struintro.setGeometry(10, 10, 0, 25)
+
+
+       self.reactants = QLineEdit(self)
+       self.reactants.setGeometry(10, 75, 0, 25)
+
+
+       self.periodicintro = QtWidgets.QLabel(self)
+       self.periodicintro.setText('CatalystAI : I can show you information of any given element.\n                        Enter any element (e.g. H, O, Fe, etc.)')
+       self.periodicintro.setStyleSheet('QLabel { color: White; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.periodicintro.setGeometry(10, 10, 0, 0)
+
+
+       self.periodicele = QLineEdit(self)
+       self.periodicele.setGeometry(10, 75, 0, 25)
+
+
+       self.periodicenter = QtWidgets.QPushButton(self, clicked=self.periodicelement)
+       self.periodicenter.setStyleSheet('background-image: url(enter.png);')
+       self.periodicenter.setGeometry(330, 75, 0, 25)
+
+
+       self.periodicinfo = QtWidgets.QLabel(self)
+       self.periodicinfo.setStyleSheet('QLabel { color: Green; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.periodicinfo.setGeometry(10, 150, 0, 0)
+
+
+       self.periodicgif = QtWidgets.QLabel(self)
+       self.periodicgif.setGeometry(10, 150, 0, 0)
+
+
+       self.compound = QLineEdit(self)
+       self.compound.setGeometry(10, 75, 0, 25)
+
+
+       self.entero3 = QtWidgets.QPushButton(self, clicked = self.entercompound)
+       self.entero3.setStyleSheet('background-image: url(enter.png);')
+       self.entero3.setGeometry(330, 75, 0, 25)
+
+
+       self.enter = QtWidgets.QPushButton(self, clicked = self.enterreactants)
+       self.enter.setStyleSheet('background-image: url(enter.png);')
+       self.enter.setGeometry(330, 75, 0, 25)
+
+
+       self.enter2 = QtWidgets.QPushButton(self, clicked = self.enterproducts)
+       self.enter2.setStyleSheet('background-image: url(enter.png);')
+       self.enter2.setGeometry(330, 75, 0, 25)
+
+
+       self.reactantsdisplay = QtWidgets.QLabel(self)
+       self.reactantsdisplay.setStyleSheet('QLabel { color: White; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.reactantsdisplay.setGeometry(10,105,0,0)
+
+
+       self.productsdisplay = QtWidgets.QLabel(self)
+       self.productsdisplay.setStyleSheet('QLabel { color: White; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.productsdisplay.setGeometry(10,210,0,0)
+
+
+       self.disoutput = QtWidgets.QLabel(self)
+       self.disoutput.setStyleSheet('QLabel { color: green; font-size: 25px; font-style: italic; font-weight: bold}')
+       self.disoutput.setGeometry(10, 240, 0, 0)
+
+
+       self.chemical = QtWidgets.QLabel(self)
+       self.chemical.setStyleSheet('QLabel { color: Green; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.chemical.setGeometry(10, 150, 0, 0)
+
+
+       self.chemicalimg = QtWidgets.QLabel(self)
+       self.chemicalimg.setGeometry(self.chemical.x() + 300, 150, 0, 0)
+
+
+       self.rectype = QtWidgets.QLabel(self)
+       self.rectype.setText('CatalystAI : I can identify the type of given reaction.\n                        Enter the reactants of the reaction : ')
+       self.rectype.setStyleSheet('QLabel { color: White; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.rectype.setGeometry(10, 10, 0, 0)
+
+
+       self.reactioncomp = QtWidgets.QLabel(self)
+       self.reactioncomp.setText('')
+       self.reactioncomp.setStyleSheet('QLabel { color: yellow; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.reactioncomp.setGeometry(600, 100, 0, 0)
+      
+       self.recinput = QLineEdit(self)
+       self.recinput.setGeometry(10, 75, 0, 25)
+
+
+       self.recenter1 = QtWidgets.QPushButton(self, clicked = self.reactioninput1)
+       self.recenter1.setStyleSheet('background-image: url(enter.png);')
+       self.recenter1.setGeometry(330, 75, 0, 25)
+
+
+       self.recenter2 = QtWidgets.QPushButton(self, clicked = self.reactioninput2)
+       self.recenter2.setStyleSheet('background-image: url(enter.png);')
+       self.recenter2.setGeometry(330, 75, 0, 25)
+
+
+       self.recenter3 = QtWidgets.QPushButton(self, clicked = self.reactioninput3)
+       self.recenter3.setStyleSheet('background-image: url(enter.png);')
+       self.recenter3.setGeometry(330, 75, 0, 25)
+
+
+       self.typeoutput = QtWidgets.QLabel(self)
+       self.typeoutput.setStyleSheet('QLabel { color: Green; font-size: 25px; font-style: italic; font-weight: bold}')
+       self.typeoutput.setGeometry(10, 200, 0, 0)
+
+
+       self.hcintro = QtWidgets.QLabel(self)
+       self.hcintro.setText('CatalystAI : I can provide information on hydrocarbons and its isomers.\n                        Enter number of carbons in the hydrocarbon : ')
+       self.hcintro.setStyleSheet('QLabel { color: white; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.hcintro.setGeometry(10, 10, 0, 0)
+
+
+       self.hcinput = QLineEdit(self)
+       self.hcinput.setGeometry(10, 75, 0, 25)
+      
+       self.hcenter1 = QtWidgets.QPushButton(self, clicked = self.nocarbons)
+       self.hcenter1.setGeometry(330, 75, 0, 27)
+       self.hcenter1.setStyleSheet('background-image: url(enter.png);')
+
+
+       self.hcenter2 = QtWidgets.QPushButton(self, clicked = self.nohydrogens)
+       self.hcenter2.setGeometry(330, 75, 0, 27)
+       self.hcenter2.setStyleSheet('background-image: url(enter.png);')
+
+
+       self.hcoutput = QtWidgets.QLabel(self)
+       self.hcoutput.setStyleSheet('QLabel { color: Green; font-size: 18px; font-style: italic; font-weight: bold}')
+       self.hcoutput.setGeometry(10, 100, 0, 0)
+
+
+      
+
+
+   def introduction(self):
+           self.intro.setGeometry(10, 210, 500, 25)
+           self.option1.setGeometry(260, 300, 500, 50)
+           self.option2.setGeometry(260, 360, 500, 50)
+           self.option3.setGeometry(260, 420, 500, 50)
+           self.option4.setGeometry(260, 480, 500, 50)
+           self.option5.setGeometry(260, 540, 500, 50)
+
+
+   def animation(self):
+       self.animation = QPropertyAnimation(self.label, b'geometry')
+       self.animation.setDuration(500)
+       self.animation.setStartValue(QRect(260, 170, 560,200))
+       self.animation.setEndValue(QRect(260, 0, 560,200))
+       self.b1.hide()
+       self.animation.start()
+
+
+       self.animation.finished.connect(self.introduction)
+
+
+   def option01(self):
+       self.label.hide()
+       self.intro.hide()
+       self.option2.hide()
+       self.option3.hide()
+       self.option4.hide()
+       self.option5.hide()
+
+
+       self.option1.setStyleSheet('background-color: black;')
+       self.anichembal = QPropertyAnimation(self.option1, b'geometry')
+       self.anichembal.setDuration(1000)
+       self.anichembal.setStartValue(QRect(260, 300, 500, 50))
+       self.anichembal.setEndValue(QRect(-350, -300, 1860, 1440))
+       self.anichembal.start()
+       self.anichembal.finished.connect(self.option11)
+
+
+   def option11(self):
+           self.setStyleSheet('background-color: black;')
+           self.cqbintro.adjustSize()
+           self.reactants.setGeometry(10, 75, 300, 25)
+           self.enter.setGeometry(330, 75, 75, 27)
+
+
+   def enterreactants(self):
+        self.enter.hide()
+        self.rreactants = self.reactants.text()
+        rdis = 'Reactants : ' + self.rreactants
+        self.reactantsdisplay.setText(rdis)
+        self.reactantsdisplay.adjustSize()
+        self.cqbintro2.adjustSize()
+
+
+        self.reactants.setText('')
+        self.reactants.setGeometry(10, 190, 300, 25)
+        self.enter2.setGeometry(330, 190, 75, 27)
+
+
+   def enterproducts(self,):
+        self.enter2.hide()
+        self.reactants.hide()
+        self.products = self.reactants.text()
+        pdis = 'Products : ' + self.products
+        self.productsdisplay.setText(pdis)
+        self.productsdisplay.adjustSize()
+        self.balancer()
+
+
+   def balancer(self):
+       elementList=[]
+       elementMatrix=[]
+       reactants=self.rreactants.replace(' ', '').split("+")
+       products=self.products.replace(' ', '').split("+")
+       def addToMatrix(element, index, count, side):
+           if(index == len(elementMatrix)):
+               elementMatrix.append([])
+               for x in elementList:
+                   elementMatrix[index].append(0)
+           if(element not in elementList):
+               elementList.append(element)
+               for i in range(len(elementMatrix)):
+                   elementMatrix[i].append(0)
+           column=elementList.index(element)
+           elementMatrix[index][column]+=count*side
+  
+       def findElements(segment,index, multiplier, side):
+           elementsAndNumbers=re.split('([A-Z][a-z]?)',segment)
+           i = 0
+           while(i<len(elementsAndNumbers)-1):#last element always blank
+               i += 1
+               if(len(elementsAndNumbers[i])>0):
+                   if(elementsAndNumbers[i+1].isdigit()):
+                       count=int(elementsAndNumbers[i+1])*multiplier
+                       addToMatrix(elementsAndNumbers[i], index, count, side)
+                       i += 1
+                   else:
+                       addToMatrix(elementsAndNumbers[i], index, multiplier, side)       
+  
+       def compoundDecipher(compound, index, side):
+           segments=re.split('(\([A-Za-z0-9]\)[0-9])',compound)   
+           for segment in segments:
+               if segment.startswith("("):
+                   segment=re.split('\)([0-9]*)',segment)
+                   multiplier=int(segment[1])
+                   segment=segment[0][1:]
+               else:
+                   multiplier=1
+               findElements(segment, index, multiplier, side)
+          
+       for i in range(len(reactants)):
+           compoundDecipher(reactants[i],i,1)
+       for i in range(len(products)):
+           compoundDecipher(products[i],i+len(reactants),-1)
+       elementMatrix = Matrix(elementMatrix)
+       elementMatrix = elementMatrix.transpose()
+       solution = elementMatrix.nullspace()[0]
+       multiple = lcm([val.q for val in solution])
+       solution = multiple*solution
+       coEffi = solution.tolist()
+
+
+       for i in range(len(coEffi)):
+           if coEffi[i] == 0:
+               self.output = 'Sorry, I cannot balance this equation.'
+               self.disoutput.setText(self.output)
+               self.disoutput.setStyleSheet('QLabel { color: red; font-size: 25px; font-style: italic; font-weight: bold}')
+               self.disoutput.adjustSize()
+           else:
+               self.output=""
+               for i in range(len(reactants)):
+                   self.output+=str(coEffi[i][0])+reactants[i]
+                   if i<len(reactants)-1:
+                       self.output+=" + "
+               self.output+=" ---> "
+               for i in range(len(products)):
+                   self.output+=str(coEffi[i+len(reactants)][0])+products[i]
+                   if i<len(products)-1:
+                       self.output+=" + "
+           finaloutput = 'Balanced reactions is : ' + self.output
+
+
+           self.disoutput.setText(finaloutput)
+           self.disoutput.adjustSize()
+
+
+
+
+   def option02(self):
+       self.label.hide()
+       self.intro.hide()
+       self.option1.hide()
+       self.option3.hide()
+       self.option4.hide()
+       self.option5.hide()
+
+
+       self.option2.setStyleSheet('background-color: black;')
+       self.periodic = QPropertyAnimation(self.option2, b'geometry')
+       self.periodic.setDuration(1000)
+       self.periodic.setStartValue(QRect(260, 360, 500, 50))
+       self.periodic.setEndValue(QRect(-350, -400, 1860, 1440))
+       self.periodic.start()
+       self.periodic.finished.connect(self.option12)
+
+
+   def option12(self):
+       self.setStyleSheet('background-color: black;')
+       self.periodicintro.adjustSize()
+       self.periodicele.setGeometry(10, 75, 300, 25)
+       self.periodicenter.setGeometry(330, 75, 75, 27)
+
+
+   def periodicelement(self):
+       self.ele = self.periodicele.text()
+       self.periodicele.setText('')
+
+
+       self.periodictable()
+
+
+   def periodictable(self):
+       def get_element(symbol):
+           element = elements.get(symbol)
+           if element:
+               return element
+           else:
+               return None
+          
+       element_symbol = self.ele
+       element_info = get_element(element_symbol)
+
+
+       if element_info:
+           self.periodicinfo.setStyleSheet('QLabel { color: Green; font-size: 18px; font-style: italic; font-weight: bold}')
+           self.periodicinfo.setText(f"Element : {element_info['name']}\nSymbol : {element_symbol}\nAtomic Number : {element_info['atomic_number']}\nAtomic Mass: {element_info['atomic_mass']}")
+           self.periodicinfo.adjustSize()
+          
+           if element_symbol=="H":
+               self.gif = QMovie('H.gif')
+               self.periodicgif.setMovie(self.gif)
+               self.periodicgif.setGeometry(300,150,544,544)
+               self.gif.start()
+
+
+           else: self.periodicgif.hide()
+
+
+          
+  
+       else:
+           self.periodicinfo.setStyleSheet('QLabel { color: Red; font-size: 18px; font-style: italic; font-weight: bold}')
+           self.periodicinfo.setText(f"Element with symbol {element_symbol} not found.")
+           self.periodicinfo.adjustSize()
+
+
+
+
+
+
+   def option03(self):
+       self.label.hide()
+       self.intro.hide()
+       self.option2.hide()
+       self.option1.hide()
+       self.option4.hide()
+       self.option5.hide()
+
+
+       self.option3.setStyleSheet('background-color: black;')
+       self.struct = QPropertyAnimation(self.option3, b'geometry')
+       self.struct.setDuration(1000)
+       self.struct.setStartValue(QRect(260, 420, 500, 50))
+       self.struct.setEndValue(QRect(-400, -450, 1860, 1440))
+       self.struct.start()
+       self.struct.finished.connect(self.option13)
+
+
+   def option13(self):
+       self.setStyleSheet('background-color: black;')
+       self.struintro.adjustSize()
+       self.compound.setGeometry(10, 75, 300, 25)
+       self.entero3.setGeometry(330, 75, 75, 27)
+
+
+   def entercompound(self):
+
+
+       self.chemical_name = self.compound.text()
+
+
+       self.chemstructures()
+
+
+      
+   def chemstructures(self):
+       results = pcp.get_compounds(self.chemical_name, 'name')
+
+
+       if len(results) > 0:
+           self.compound.setText('')
+           self.chemical.setText(self.chemical_name)
+           self.chemical.adjustSize()
+           compound = results[0]
+           structure = compound.canonical_smiles
+           molecule = Chem.MolFromSmiles(structure)
+           image = Draw.MolToImage(molecule)
+           image.save('structure.png')
+           self.chemicalimg.show()
+           self.chemical.setStyleSheet('QLabel { color: Green; font-size: 18px; font-style: italic; font-weight: bold}')
+           self.chemicalimg.setStyleSheet('background-color: white; background-image: url(structure.png)')
+           self.chemicalimg.setGeometry(self.chemical.x() + 300, 150, 300, 300)
+
+
+
+
+       else:
+        self.chemicalimg.hide()
+        self.chemical.setStyleSheet('QLabel { color: Red; font-size: 18px; font-style: italic; font-weight: bold}')
+        self.chemical.setText(f'No chemical found for name {self.chemical_name}')
+        self.chemical.adjustSize()
+
+
+   def option04(self):
+       self.label.hide()
+       self.intro.hide()
+       self.option2.hide()
+       self.option1.hide()
+       self.option3.hide()
+       self.option5.hide()
+
+
+       self.option4.setStyleSheet('background-color: black;')
+       self.type = QPropertyAnimation(self.option4, b'geometry')
+       self.type.setDuration(1000)
+       self.type.setStartValue(QRect(260, 480, 500, 50))
+       self.type.setEndValue(QRect(-325, -500, 1860, 1440))
+       self.type.start()
+       self.type.finished.connect(self.option14)
+
+
+   def option14(self):
+       self.setStyleSheet('background-color: black;')
+
+
+       self.rectype.adjustSize()
+       self.recinput.setGeometry(10, 75, 300, 25)
+       self.recenter1.setGeometry(330, 75, 75, 27)
+
+
+   def reactioninput1(self):
+       self.typereactants = self.recinput.text()
+       self.reccomp = 'Reactants : ' + self.typereactants + '\n'
+       self.reactioncomp.setText(self.reccomp)
+       self.reactioncomp.adjustSize()
+       self.recenter1.hide()
+       self.recinput.setText('')
+       self.rectype.setText('Enter the products : ')
+       self.recenter2.setGeometry(330, 75, 75, 27)
+
+
+   def reactioninput2(self):
+       self.typeproducts = self.recinput.text()
+       self.reccomp = self.reccomp + 'Products : ' + self.typeproducts + '\n'
+       self.reactioncomp.setText(self.reccomp)
+       self.reactioncomp.adjustSize()
+       self.recenter2.hide()
+       self.recinput.setText('')
+       self.rectype.setText('Enter the constant element(s) present in both the reactant and product compounds (separated by commas) : ')
+       self.rectype.adjustSize()
+       self.recenter3.setGeometry(330, 75, 75, 27)
+
+
+   def reactioninput3(self):
+       self.typeconstant = self.recinput.text()
+       self.reccomp = self.reccomp + 'Constant element(s) : ' + self.typeconstant + '\n'
+       self.reactioncomp.setText(self.reccomp)
+       self.reactioncomp.adjustSize()
+       self.recenter3.hide()
+       self.recinput.hide()
+
+
+       if not self.typeconstant:
+           self.reactant=self.typereactants.replace('','').split("+")
+           self.product=self.typeproducts.replace('','').split("+")
+           if len(self.product)==1  and len(self.reactant)>1 :
+               rtoutput = self.reactant[0] + " + " + self.reactant[1] + " --> " + self.product[0] + " is a Combination reaction"
+
+
+               self.typeoutput.setText(rtoutput)
+               self.typeoutput.adjustSize()
+     
+           elif len(self.reactant)==1 and len(self.product)>1 :
+               output = self.reactant[0]+" --> "+self.product[0]+" + "+self.product[1]+" is a Decomposition reaction"
+
+
+               self.typeoutput.setText(output)
+               self.typeoutput.adjustSize()
+
+
+       else : self.rectypeidentify()
+
+
+   def rectypeidentify(self):
+       def create_element_dictionary():
+           reactant_elements = self.typereactants.split('+')
+           product_elements = self.typeproducts.split('+')
+           constant_elements = self.typeconstant.split(',')
+
+
+           element_dict = {}
+           for constant in constant_elements:
+               element_dict[constant] = []
+
+
+               for element in reactant_elements:
+                   if constant in element:
+                       element_dict[constant].append(element.replace(constant, '').strip())
+
+
+               for element in product_elements:
+                   if constant in element:
+                       element_dict[constant].append(element.replace(constant, '').strip())
+
+
+           return element_dict
+      
+       element_dict = create_element_dictionary()
+       ele_list=list(element_dict)
+                  
+       if True:
+           '''swapped_dict = {}
+           for key, values in element_dict.items():
+               for value in values:
+                   swapped_dict[value] = key'''
+  
+           if len(ele_list)==1:
+               output = self.typereactants+ " --> "+ self.typeproducts+ " is a Displacement Reaction"
+
+
+               self.typeoutput.setText(output)
+               self.typeoutput.adjustSize()
+              
+  
+         
+           elif len(ele_list)>1:
+               output = self.typereactants+ " --> "+ self.typeproducts+ " is a Double Displacement Reaction"
+
+
+               self.typeoutput.setText(output)
+               self.typeoutput.adjustSize()
+
+
+
+
+   def option05(self):
+       self.label.hide()
+       self.intro.hide()
+       self.option2.hide()
+       self.option1.hide()
+       self.option3.hide()
+       self.option4.hide()
+
+
+       self.option5.setStyleSheet('background-color: black;')
+       self.hcani = QPropertyAnimation(self.option5, b'geometry')
+       self.hcani.setDuration(1000)
+       self.hcani.setStartValue(QRect(260, 540, 500, 50))
+       self.hcani.setEndValue(QRect(-400, -600, 1860, 1440))
+       self.hcani.start()
+       self.hcani.finished.connect(self.option15)
+
+
+   def option15(self):
+       self.setStyleSheet('background-color: black;')
+
+
+       self.hcintro.adjustSize()
+       self.hcinput.setGeometry(10, 75, 300, 25)
+       self.hcenter1.setGeometry(330, 75, 75, 27)
+
+
+   def nocarbons(self):
+       self.NoC = int(self.hcinput.text())
+       self.hcinput.setText('')
+       self.hcintro.setText('Enter the number of hydrogens in the hydrocarbon : ')
+       self.hcenter1.hide()
+       self.hcenter2.setGeometry(330, 75, 75, 27)
+
+
+   def nohydrogens(self):
+       self.NoH = int(self.hcinput.text())
+       self.hcenter2.hide()
+       self.hcinput.hide()
+
+
+       self.hydrocarbons()
+
+
+   def hydrocarbons(self):
+       def Check_Hydrocarbon_type():
+           if self.NoH == 2 * self.NoC + 2:
+               hcout = "Given combination of Carbon and Hydrogen is Alkane.\n"
+               file1 = open('Alkanes.txt', 'r')
+               alkanes = file1.read()
+
+
+               alkane = f'C{self.NoC}H{self.NoH}'
+
+
+               if alkane in alkanes:
+                   index1 = alkanes.index(f'C{self.NoC}H{self.NoH}')
+                   index2 = alkanes.index(f'C{self.NoC+1}H{self.NoH+2}')
+
+
+                   hcout = hcout + alkanes[index1:index2]
+               file1.close()
+
+
+           elif self.NoH == 2 * self.NoC:
+               hcout = "Given combination of Carbon and Hydrogen is Alkene.\n"
+               file2= open("Alkene.txt", 'r')
+               alkenes =file2.read()
+
+
+               alkene = f'C{self.NoC}H{self.NoH}'
+
+
+               if alkene in alkenes:
+                   index1 = alkenes.index(f'C{self.NoC}H{self.NoH}')
+                   index2 = alkenes.index(f'C{self.NoC+1}H{self.NoH+2}')
+
+
+                   hcout = hcout + alkenes[index1:index2]
+               file2.close()
+
+
+           elif self.NoH == 2 * self.NoC - 2:
+               hcout = "Given combination of Carbon and Hydrogen is Alkyne.\n"
+               file3=open("Alkyne.txt", 'r')
+               alkynes =file3.read()
+
+
+               alkyne = f'C{self.NoC}H{self.NoH}'
+
+
+               if alkyne in alkynes:
+                   index1 = alkynes.index(f'C{self.NoC}H{self.NoH}')
+                   index2 = alkynes.index(f'C{self.NoC+1}H{self.NoH+2}')
+
+
+                   hcout = hcout + alkynes[index1:index2]
+               file3.close()
+
+
+           else:
+               hcout = "Given Combination does not fall into any type."
+               self.hcoutput.setStyleSheet('QLabel { color: red; font-size: 18px; font-style: italic; font-weight: bold}')
+
+
+           self.hcoutput.setText(hcout)
+           self.hcoutput.adjustSize()
+
+
+       Check_Hydrocarbon_type()
+
+
+
+
+
+
+def window():
+   app = QApplication(sys.argv)
+   win = MyWindow()
+   win.show()
+   sys.exit(app.exec_())
+
+
+window()
